@@ -47,10 +47,44 @@
             letter-spacing: 0.5px;
         }
 
+        .project-info {
+            display: flex;
+            gap: 2rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .project-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .project-info-item strong {
+            font-weight: 500;
+        }
+
+        .edit-project-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: var(--white);
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+            margin-left: 1rem;
+        }
+
+        .edit-project-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
         /* Main Container */
         .container {
             display: flex;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 120px);
             position: relative;
         }
 
@@ -384,13 +418,64 @@
             background-color: #f5f0fa;
         }
 
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: var(--primary-purple);
+            font-size: 1.4rem;
+            font-weight: 500;
+        }
+
+        .modal-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
         /* Print Styles */
         @media print {
             .left-panel,
-            .header,
             .detail-panel,
-            .empty-state {
+            .empty-state,
+            .edit-project-btn {
                 display: none !important;
+            }
+
+            .header {
+                background-color: transparent;
+                color: var(--text-dark);
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
             }
 
             .matrix-container {
@@ -422,6 +507,15 @@
 <body>
     <div class="header">
         <h1>Stakeholder Influence/Interest Mapping Tool</h1>
+        <div class="project-info">
+            <div class="project-info-item">
+                <strong>Project:</strong> <span id="projectNameDisplay">Not Set</span>
+            </div>
+            <div class="project-info-item">
+                <strong>Manager:</strong> <span id="projectManagerDisplay">Not Set</span>
+            </div>
+            <button class="edit-project-btn" onclick="openProjectModal()">Edit Project Info</button>
+        </div>
     </div>
 
     <div class="container">
@@ -522,6 +616,29 @@
         </div>
     </div>
 
+    <!-- Project Modal -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Project Information</h2>
+            </div>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label for="projectName">Project Name</label>
+                    <input type="text" id="projectName" placeholder="Enter project name">
+                </div>
+                <div class="form-group">
+                    <label for="projectManager">Project Manager</label>
+                    <input type="text" id="projectManager" placeholder="Enter project manager name">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -532,6 +649,10 @@
         // Application State
         let stakeholders = [];
         let editingId = null;
+        let projectInfo = {
+            name: '',
+            manager: ''
+        };
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -539,6 +660,7 @@
             initializeAxisLabels();
             setupEventListeners();
             updateDisplay();
+            updateProjectDisplay();
         });
 
         // Initialize axis labels
@@ -572,6 +694,9 @@
             // Form submission
             document.getElementById('stakeholderForm').addEventListener('submit', handleFormSubmit);
             
+            // Project form submission
+            document.getElementById('projectForm').addEventListener('submit', handleProjectFormSubmit);
+            
             // Cancel button
             document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
             
@@ -593,6 +718,39 @@
                     detailPanel.classList.remove('active');
                 }
             });
+            
+            // Close modal when clicking outside
+            document.getElementById('projectModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('projectModal')) {
+                    closeProjectModal();
+                }
+            });
+        }
+
+        // Project Modal Functions
+        function openProjectModal() {
+            document.getElementById('projectName').value = projectInfo.name;
+            document.getElementById('projectManager').value = projectInfo.manager;
+            document.getElementById('projectModal').classList.add('active');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('projectModal').classList.remove('active');
+        }
+
+        function handleProjectFormSubmit(e) {
+            e.preventDefault();
+            projectInfo.name = document.getElementById('projectName').value.trim();
+            projectInfo.manager = document.getElementById('projectManager').value.trim();
+            saveToLocalStorage();
+            updateProjectDisplay();
+            closeProjectModal();
+            showToast('Project information updated');
+        }
+
+        function updateProjectDisplay() {
+            document.getElementById('projectNameDisplay').textContent = projectInfo.name || 'Not Set';
+            document.getElementById('projectManagerDisplay').textContent = projectInfo.manager || 'Not Set';
         }
 
         // Form submission handler
@@ -886,7 +1044,8 @@
         // JSON Export
         function exportToJson() {
             const data = {
-                projectName: 'Stakeholder Mapping',
+                projectName: projectInfo.name || 'Stakeholder Mapping',
+                projectManager: projectInfo.manager || '',
                 exportDate: new Date().toISOString(),
                 stakeholders: stakeholders
             };
@@ -915,8 +1074,18 @@
                     const data = JSON.parse(event.target.result);
                     if (data.stakeholders && Array.isArray(data.stakeholders)) {
                         stakeholders = data.stakeholders;
+                        
+                        // Import project info if available
+                        if (data.projectName !== undefined) {
+                            projectInfo.name = data.projectName;
+                        }
+                        if (data.projectManager !== undefined) {
+                            projectInfo.manager = data.projectManager;
+                        }
+                        
                         saveToLocalStorage();
                         updateDisplay();
+                        updateProjectDisplay();
                         showToast('Imported from JSON successfully');
                     } else {
                         showToast('Invalid JSON format', 'error');
@@ -933,6 +1102,9 @@
         // Excel Export
         function exportToExcel() {
             const ws_data = [
+                ['Project Name', projectInfo.name || ''],
+                ['Project Manager', projectInfo.manager || ''],
+                [], // Empty row
                 ['Name', 'Roles', 'Business Influence', 'Technical Interest', 'Quadrant']
             ];
             
@@ -955,6 +1127,19 @@
             document.querySelector('.detail-panel').classList.remove('active');
             document.querySelector('.empty-state').style.display = 'none';
             
+            // Add project info to the matrix for PDF
+            const projectInfoElement = document.createElement('div');
+            projectInfoElement.style.position = 'absolute';
+            projectInfoElement.style.top = '10px';
+            projectInfoElement.style.left = '10px';
+            projectInfoElement.style.fontSize = '14px';
+            projectInfoElement.style.color = 'var(--text-dark)';
+            projectInfoElement.innerHTML = `
+                <strong>Project:</strong> ${projectInfo.name || 'Not Set'}<br>
+                <strong>Manager:</strong> ${projectInfo.manager || 'Not Set'}
+            `;
+            document.querySelector('.matrix-wrapper').appendChild(projectInfoElement);
+            
             html2canvas(document.querySelector('.matrix-wrapper')).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jspdf.jsPDF('l', 'mm', 'a4');
@@ -968,6 +1153,7 @@
                 // Restore UI elements
                 document.querySelector('.left-panel').style.display = 'block';
                 updateEmptyState();
+                projectInfoElement.remove();
                 
                 showToast('Exported to PDF successfully');
             });
@@ -986,17 +1172,24 @@
 
         // LocalStorage functions
         function saveToLocalStorage() {
-            localStorage.setItem('stakeholderMapping', JSON.stringify(stakeholders));
+            const data = {
+                stakeholders: stakeholders,
+                projectInfo: projectInfo
+            };
+            localStorage.setItem('stakeholderMapping', JSON.stringify(data));
         }
 
         function loadFromLocalStorage() {
             const saved = localStorage.getItem('stakeholderMapping');
             if (saved) {
                 try {
-                    stakeholders = JSON.parse(saved);
+                    const data = JSON.parse(saved);
+                    stakeholders = data.stakeholders || [];
+                    projectInfo = data.projectInfo || { name: '', manager: '' };
                 } catch (error) {
                     console.error('Error loading saved data:', error);
                     stakeholders = [];
+                    projectInfo = { name: '', manager: '' };
                 }
             }
         }
@@ -1016,6 +1209,8 @@
         // Make functions globally accessible for inline onclick handlers
         window.editStakeholder = editStakeholder;
         window.deleteStakeholder = deleteStakeholder;
+        window.openProjectModal = openProjectModal;
+        window.closeProjectModal = closeProjectModal;
     </script>
 </body>
 </html>
