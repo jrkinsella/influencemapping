@@ -245,6 +245,17 @@
             text-decoration: underline;
         }
 
+        .quadrant-label.has-actions {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .quadrant-label.has-actions::after {
+            content: " ▼";
+            font-size: 10px;
+            opacity: 0.5;
+        }
+
         /* Communication Actions */
         .comm-actions {
             opacity: 0;
@@ -253,6 +264,11 @@
         }
 
         .comm-actions.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .comm-actions.active {
             opacity: 1;
             pointer-events: all;
         }
@@ -286,11 +302,6 @@
             white-space: nowrap;
             pointer-events: none;
             z-index: 100;
-        }
-
-        .hover-area {
-            fill: transparent;
-            cursor: pointer;
         }
 
         /* Axis labels */
@@ -665,7 +676,6 @@
                 <div id="stakeholderItems"></div>
             </div>
         </div>
-
         <div class="matrix-container">
             <div class="matrix-wrapper">
                 <svg class="matrix" id="matrix" viewBox="0 0 600 600">
@@ -688,8 +698,7 @@
 
                     <!-- Quadrant labels with communication actions -->
                     <g id="quadrantGroup1">
-                        <rect x="300" y="120" width="300" height="80" class="hover-area" data-quadrant="q1"/>
-                        <text x="450" y="150" text-anchor="middle" class="quadrant-label" id="q1Label">Manage Closely</text>
+                        <text x="450" y="150" text-anchor="middle" class="quadrant-label has-actions" id="q1Label" data-quadrant="q1">Manage Closely</text>
                         <g class="comm-actions" id="q1Actions" transform="translate(450, 175)">
                             <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
                             <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q1" data-action="email" data-tooltip="Send Email">✉️</text>
@@ -699,8 +708,7 @@
                     </g>
 
                     <g id="quadrantGroup2">
-                        <rect x="0" y="120" width="300" height="80" class="hover-area" data-quadrant="q2"/>
-                        <text x="150" y="150" text-anchor="middle" class="quadrant-label" id="q2Label">Keep Satisfied</text>
+                        <text x="150" y="150" text-anchor="middle" class="quadrant-label has-actions" id="q2Label" data-quadrant="q2">Keep Satisfied</text>
                         <g class="comm-actions" id="q2Actions" transform="translate(150, 175)">
                             <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
                             <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q2" data-action="email" data-tooltip="Send Email">✉️</text>
@@ -710,8 +718,7 @@
                     </g>
 
                     <g id="quadrantGroup3">
-                        <rect x="300" y="420" width="300" height="80" class="hover-area" data-quadrant="q3"/>
-                        <text x="450" y="450" text-anchor="middle" class="quadrant-label" id="q3Label">Keep Informed</text>
+                        <text x="450" y="450" text-anchor="middle" class="quadrant-label has-actions" id="q3Label" data-quadrant="q3">Keep Informed</text>
                         <g class="comm-actions" id="q3Actions" transform="translate(450, 475)">
                             <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
                             <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q3" data-action="email" data-tooltip="Send Email">✉️</text>
@@ -721,8 +728,7 @@
                     </g>
 
                     <g id="quadrantGroup4">
-                        <rect x="0" y="420" width="300" height="80" class="hover-area" data-quadrant="q4"/>
-                        <text x="150" y="450" text-anchor="middle" class="quadrant-label" id="q4Label">Monitor</text>
+                        <text x="150" y="450" text-anchor="middle" class="quadrant-label has-actions" id="q4Label" data-quadrant="q4">Monitor</text>
                         <g class="comm-actions" id="q4Actions" transform="translate(150, 475)">
                             <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
                             <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q4" data-action="email" data-tooltip="Send Email">✉️</text>
@@ -811,7 +817,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <script>
         // Application State
         let stakeholders = [];
@@ -870,35 +875,55 @@
             }
         }
 
-       // Setup Progressive Hover
+        // Setup Click-to-Toggle Communication Menu
         function setupProgressiveHover() {
-            const hoverAreas = document.querySelectorAll('.hover-area');
-            const hoverTimers = {};
+            const quadrantLabels = document.querySelectorAll('.quadrant-label.has-actions');
+            let activeQuadrant = null;
             
             // Create tooltip element
             const tooltip = document.createElement('div');
             tooltip.className = 'comm-tooltip';
             document.body.appendChild(tooltip);
-        
-            hoverAreas.forEach(area => {
-                const quadrantId = area.getAttribute('data-quadrant');
+
+            // Handle quadrant label clicks
+            quadrantLabels.forEach(label => {
+                const quadrantId = label.getAttribute('data-quadrant');
                 const actions = document.getElementById(`${quadrantId}Actions`);
-        
-                area.addEventListener('mouseenter', () => {
-                    // Start timer for progressive reveal
-                    hoverTimers[quadrantId] = setTimeout(() => {
+
+                label.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // If clicking the same quadrant, toggle it
+                    if (activeQuadrant === quadrantId) {
+                        actions.classList.remove('active');
+                        actions.classList.remove('visible');
+                        activeQuadrant = null;
+                    } else {
+                        // Hide any previously active actions
+                        if (activeQuadrant) {
+                            document.getElementById(`${activeQuadrant}Actions`).classList.remove('active');
+                            document.getElementById(`${activeQuadrant}Actions`).classList.remove('visible');
+                        }
+                        
+                        // Show the clicked quadrant's actions
+                        actions.classList.add('active');
                         actions.classList.add('visible');
-                    }, 1000); // 1 second delay
-                });
-        
-                area.addEventListener('mouseleave', () => {
-                    // Clear timer and hide actions
-                    clearTimeout(hoverTimers[quadrantId]);
-                    actions.classList.remove('visible');
-                    tooltip.style.display = 'none';
+                        activeQuadrant = quadrantId;
+                    }
                 });
             });
-        
+
+            // Close actions when clicking elsewhere
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.quadrant-label') && !e.target.closest('.comm-actions')) {
+                    if (activeQuadrant) {
+                        document.getElementById(`${activeQuadrant}Actions`).classList.remove('active');
+                        document.getElementById(`${activeQuadrant}Actions`).classList.remove('visible');
+                        activeQuadrant = null;
+                    }
+                }
+            });
+
             // Setup communication action clicks and tooltips
             document.querySelectorAll('.comm-action').forEach(action => {
                 action.addEventListener('click', handleCommunicationAction);
@@ -917,6 +942,7 @@
                 });
             });
         }
+
         // Handle communication actions
         function handleCommunicationAction(e) {
             e.stopPropagation();
@@ -940,14 +966,17 @@
                     sendEmail(quadrantStakeholders, quadrantName);
                     // Hide the actions after triggering
                     document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('active');
                     break;
                 case 'meeting':
                     createMeeting(quadrantStakeholders, quadrantName);
                     document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('active');
                     break;
                 case 'teams':
                     sendTeamsMessage(quadrantStakeholders, quadrantName);
                     document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('active');
                     break;
             }
         }
@@ -1210,6 +1239,12 @@
             document.getElementById('q2Label').textContent = quadrantNames.q2;
             document.getElementById('q3Label').textContent = quadrantNames.q3;
             document.getElementById('q4Label').textContent = quadrantNames.q4;
+            
+            // Update data attributes for click handling
+            document.getElementById('q1Label').setAttribute('data-quadrant', 'q1');
+            document.getElementById('q2Label').setAttribute('data-quadrant', 'q2');
+            document.getElementById('q3Label').setAttribute('data-quadrant', 'q3');
+            document.getElementById('q4Label').setAttribute('data-quadrant', 'q4');
         }
 
         function updateStakeholderQuadrants() {
