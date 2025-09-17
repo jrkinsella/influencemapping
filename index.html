@@ -261,7 +261,8 @@
             cursor: pointer;
             fill: var(--primary-purple);
             transition: all 0.2s;
-        }
+            font-size: 24px;
+        }    
 
         .comm-action:hover {
             transform: scale(1.1);
@@ -272,6 +273,24 @@
             fill: var(--white);
             stroke: var(--cool-gray);
             stroke-width: 1;
+        }
+
+        .comm-tooltip {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .hover-area {
+            fill: transparent;
+            cursor: pointer;
         }
 
         /* Axis labels */
@@ -669,42 +688,46 @@
 
                     <!-- Quadrant labels with communication actions -->
                     <g id="quadrantGroup1">
+                        <rect x="300" y="120" width="300" height="80" class="hover-area" data-quadrant="q1"/>
                         <text x="450" y="150" text-anchor="middle" class="quadrant-label" id="q1Label">Manage Closely</text>
-                        <g class="comm-actions" id="q1Actions" transform="translate(450, 170)">
-                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
-                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="email">✉️</text>
-                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="meeting">📅</text>
-                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="teams">💬</text>
+                        <g class="comm-actions" id="q1Actions" transform="translate(450, 175)">
+                            <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
+                            <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q1" data-action="email" data-tooltip="Send Email">✉️</text>
+                            <text x="0" y="8" font-size="24" class="comm-action" data-quadrant="q1" data-action="meeting" data-tooltip="Schedule Meeting">📅</text>
+                            <text x="35" y="8" font-size="24" class="comm-action" data-quadrant="q1" data-action="teams" data-tooltip="Teams Message">💬</text>
                         </g>
                     </g>
 
                     <g id="quadrantGroup2">
+                        <rect x="0" y="120" width="300" height="80" class="hover-area" data-quadrant="q2"/>
                         <text x="150" y="150" text-anchor="middle" class="quadrant-label" id="q2Label">Keep Satisfied</text>
-                        <g class="comm-actions" id="q2Actions" transform="translate(150, 170)">
-                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
-                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="email">✉️</text>
-                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="meeting">📅</text>
-                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="teams">💬</text>
+                        <g class="comm-actions" id="q2Actions" transform="translate(150, 175)">
+                            <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
+                            <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q2" data-action="email" data-tooltip="Send Email">✉️</text>
+                            <text x="0" y="8" font-size="24" class="comm-action" data-quadrant="q2" data-action="meeting" data-tooltip="Schedule Meeting">📅</text>
+                            <text x="35" y="8" font-size="24" class="comm-action" data-quadrant="q2" data-action="teams" data-tooltip="Teams Message">💬</text>
                         </g>
                     </g>
 
                     <g id="quadrantGroup3">
+                        <rect x="300" y="420" width="300" height="80" class="hover-area" data-quadrant="q3"/>
                         <text x="450" y="450" text-anchor="middle" class="quadrant-label" id="q3Label">Keep Informed</text>
-                        <g class="comm-actions" id="q3Actions" transform="translate(450, 470)">
-                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
-                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="email">✉️</text>
-                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="meeting">📅</text>
-                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="teams">💬</text>
+                        <g class="comm-actions" id="q3Actions" transform="translate(450, 475)">
+                            <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
+                            <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q3" data-action="email" data-tooltip="Send Email">✉️</text>
+                            <text x="0" y="8" font-size="24" class="comm-action" data-quadrant="q3" data-action="meeting" data-tooltip="Schedule Meeting">📅</text>
+                            <text x="35" y="8" font-size="24" class="comm-action" data-quadrant="q3" data-action="teams" data-tooltip="Teams Message">💬</text>
                         </g>
                     </g>
 
                     <g id="quadrantGroup4">
+                        <rect x="0" y="420" width="300" height="80" class="hover-area" data-quadrant="q4"/>
                         <text x="150" y="450" text-anchor="middle" class="quadrant-label" id="q4Label">Monitor</text>
-                        <g class="comm-actions" id="q4Actions" transform="translate(150, 470)">
-                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
-                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="email">✉️</text>
-                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="meeting">📅</text>
-                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="teams">💬</text>
+                        <g class="comm-actions" id="q4Actions" transform="translate(150, 475)">
+                            <rect x="-60" y="-15" width="120" height="35" rx="15" class="comm-action-bg"/>
+                            <text x="-35" y="8" font-size="24" class="comm-action" data-quadrant="q4" data-action="email" data-tooltip="Send Email">✉️</text>
+                            <text x="0" y="8" font-size="24" class="comm-action" data-quadrant="q4" data-action="meeting" data-tooltip="Schedule Meeting">📅</text>
+                            <text x="35" y="8" font-size="24" class="comm-action" data-quadrant="q4" data-action="teams" data-tooltip="Teams Message">💬</text>
                         </g>
                     </g>
 
@@ -847,35 +870,53 @@
             }
         }
 
-        // Setup Progressive Hover
+       // Setup Progressive Hover
         function setupProgressiveHover() {
-            const quadrants = document.querySelectorAll('.quadrant');
+            const hoverAreas = document.querySelectorAll('.hover-area');
             const hoverTimers = {};
-
-            quadrants.forEach(quadrant => {
-                const quadrantId = quadrant.getAttribute('data-quadrant');
+            
+            // Create tooltip element
+            const tooltip = document.createElement('div');
+            tooltip.className = 'comm-tooltip';
+            document.body.appendChild(tooltip);
+        
+            hoverAreas.forEach(area => {
+                const quadrantId = area.getAttribute('data-quadrant');
                 const actions = document.getElementById(`${quadrantId}Actions`);
-
-                quadrant.addEventListener('mouseenter', () => {
+        
+                area.addEventListener('mouseenter', () => {
                     // Start timer for progressive reveal
                     hoverTimers[quadrantId] = setTimeout(() => {
                         actions.classList.add('visible');
                     }, 1000); // 1 second delay
                 });
-
-                quadrant.addEventListener('mouseleave', () => {
+        
+                area.addEventListener('mouseleave', () => {
                     // Clear timer and hide actions
                     clearTimeout(hoverTimers[quadrantId]);
                     actions.classList.remove('visible');
+                    tooltip.style.display = 'none';
                 });
             });
-
-            // Setup communication action clicks
+        
+            // Setup communication action clicks and tooltips
             document.querySelectorAll('.comm-action').forEach(action => {
                 action.addEventListener('click', handleCommunicationAction);
+                
+                // Add tooltip on hover
+                action.addEventListener('mouseenter', (e) => {
+                    const rect = e.target.getBoundingClientRect();
+                    tooltip.textContent = e.target.getAttribute('data-tooltip');
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+                    tooltip.style.top = rect.top - tooltip.offsetHeight - 5 + 'px';
+                });
+                
+                action.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
             });
         }
-
         // Handle communication actions
         function handleCommunicationAction(e) {
             e.stopPropagation();
@@ -897,12 +938,16 @@
             switch(actionType) {
                 case 'email':
                     sendEmail(quadrantStakeholders, quadrantName);
+                    // Hide the actions after triggering
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
                     break;
                 case 'meeting':
                     createMeeting(quadrantStakeholders, quadrantName);
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
                     break;
                 case 'teams':
                     sendTeamsMessage(quadrantStakeholders, quadrantName);
+                    document.getElementById(`${quadrantId}Actions`).classList.remove('visible');
                     break;
             }
         }
