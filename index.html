@@ -1076,10 +1076,14 @@
 
         // Get quadrant ID based on scores
         function getQuadrantId(influence, interest) {
-            if (influence > 5 && interest > 5) return 'q1';
-            if (influence > 5 && interest <= 5) return 'q2';
-            if (influence <= 5 && interest > 5) return 'q3';
-            return 'q4';
+            // First determine which quadrant this stakeholder belongs to
+            let quadrantId;
+            if (influence > 5 && interest > 5) quadrantId = 'q1';
+            else if (influence > 5 && interest <= 5) quadrantId = 'q2';
+            else if (influence <= 5 && interest > 5) quadrantId = 'q3';
+            else quadrantId = 'q4';
+            
+            return quadrantId;
         }
 
         // Setup event listeners
