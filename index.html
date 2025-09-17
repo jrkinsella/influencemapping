@@ -139,9 +139,24 @@
             width: 80px;
         }
 
+        .form-group input[type="number"].warning {
+            border-color: var(--warning-orange) !important;
+            border-width: 2px !important;
+        }
+
         .score-inputs {
             display: flex;
             gap: 2rem;
+        }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: var(--cool-gray);
+            margin-top: 0.2rem;
+        }
+
+        .helper-text.warning {
+            color: var(--warning-orange);
         }
 
         /* Buttons */
@@ -222,6 +237,41 @@
             font-size: 14px;
             font-weight: 500;
             fill: var(--text-dark);
+            cursor: pointer;
+        }
+
+        .quadrant-label:hover {
+            fill: var(--primary-purple);
+            text-decoration: underline;
+        }
+
+        /* Communication Actions */
+        .comm-actions {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .comm-actions.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .comm-action {
+            cursor: pointer;
+            fill: var(--primary-purple);
+            transition: all 0.2s;
+        }
+
+        .comm-action:hover {
+            transform: scale(1.1);
+            fill: var(--medium-purple);
+        }
+
+        .comm-action-bg {
+            fill: var(--white);
+            stroke: var(--cool-gray);
+            stroke-width: 1;
         }
 
         /* Axis labels */
@@ -374,6 +424,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             display: none;
             animation: slideUp 0.3s ease;
+            z-index: 1001;
         }
 
         @keyframes slideUp {
@@ -462,12 +513,27 @@
             gap: 0.5rem;
         }
 
+        /* Quadrant Settings */
+        .quadrant-settings {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+
+        .quadrant-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
         /* Print Styles */
         @media print {
             .left-panel,
             .detail-panel,
             .empty-state,
-            .edit-project-btn {
+            .edit-project-btn,
+            .comm-actions {
                 display: none !important;
             }
 
@@ -531,6 +597,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="stakeholder@example.com">
+                    </div>
+
+                    <div class="form-group">
                         <label for="roles">Role(s)</label>
                         <textarea id="roles" rows="2" placeholder="Enter roles separated by commas"></textarea>
                     </div>
@@ -539,16 +610,19 @@
                         <div class="form-group">
                             <label for="influence">Business Influence (1-10) *</label>
                             <input type="number" id="influence" min="1" max="10" required>
+                            <div class="helper-text">Cannot be 5</div>
                         </div>
 
                         <div class="form-group">
                             <label for="interest">Technical Interest (1-10) *</label>
                             <input type="number" id="interest" min="1" max="10" required>
+                            <div class="helper-text">Cannot be 5</div>
                         </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="submitBtn">Add Stakeholder</button>
                     <button type="button" class="btn btn-secondary" id="cancelBtn" style="display:none;">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none;">Delete</button>
                 </form>
             </div>
 
@@ -563,6 +637,7 @@
                 <input type="file" id="jsonImport" accept=".json" style="display:none;">
                 <button class="btn btn-success" id="exportExcel">Export to Excel</button>
                 <button class="btn btn-success" id="exportPdf">Export PDF</button>
+                <button class="btn btn-secondary" id="editQuadrants">Edit Quadrant Names</button>
                 <button class="btn btn-danger" id="clearAll">Clear All</button>
             </div>
 
@@ -576,10 +651,10 @@
             <div class="matrix-wrapper">
                 <svg class="matrix" id="matrix" viewBox="0 0 600 600">
                     <!-- Quadrants -->
-                    <rect x="300" y="0" width="300" height="300" fill="#510c76" class="quadrant" />
-                    <rect x="0" y="0" width="300" height="300" fill="#8348ad" class="quadrant" />
-                    <rect x="300" y="300" width="300" height="300" fill="#a97cca" class="quadrant" />
-                    <rect x="0" y="300" width="300" height="300" fill="#98999b" class="quadrant" />
+                    <rect x="300" y="0" width="300" height="300" fill="#510c76" class="quadrant" data-quadrant="q1" />
+                    <rect x="0" y="0" width="300" height="300" fill="#8348ad" class="quadrant" data-quadrant="q2" />
+                    <rect x="300" y="300" width="300" height="300" fill="#a97cca" class="quadrant" data-quadrant="q3" />
+                    <rect x="0" y="300" width="300" height="300" fill="#98999b" class="quadrant" data-quadrant="q4" />
 
                     <!-- Grid lines -->
                     <line x1="300" y1="0" x2="300" y2="600" stroke="#666" stroke-width="2" />
@@ -592,11 +667,46 @@
                     <!-- Number labels -->
                     <g id="axisLabels"></g>
 
-                    <!-- Quadrant labels -->
-                    <text x="450" y="150" text-anchor="middle" class="quadrant-label">Manage Closely</text>
-                    <text x="150" y="150" text-anchor="middle" class="quadrant-label">Keep Satisfied</text>
-                    <text x="450" y="450" text-anchor="middle" class="quadrant-label">Keep Informed</text>
-                    <text x="150" y="450" text-anchor="middle" class="quadrant-label">Monitor</text>
+                    <!-- Quadrant labels with communication actions -->
+                    <g id="quadrantGroup1">
+                        <text x="450" y="150" text-anchor="middle" class="quadrant-label" id="q1Label">Manage Closely</text>
+                        <g class="comm-actions" id="q1Actions" transform="translate(450, 170)">
+                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
+                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="email">✉️</text>
+                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="meeting">📅</text>
+                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q1" data-action="teams">💬</text>
+                        </g>
+                    </g>
+
+                    <g id="quadrantGroup2">
+                        <text x="150" y="150" text-anchor="middle" class="quadrant-label" id="q2Label">Keep Satisfied</text>
+                        <g class="comm-actions" id="q2Actions" transform="translate(150, 170)">
+                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
+                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="email">✉️</text>
+                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="meeting">📅</text>
+                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q2" data-action="teams">💬</text>
+                        </g>
+                    </g>
+
+                    <g id="quadrantGroup3">
+                        <text x="450" y="450" text-anchor="middle" class="quadrant-label" id="q3Label">Keep Informed</text>
+                        <g class="comm-actions" id="q3Actions" transform="translate(450, 470)">
+                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
+                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="email">✉️</text>
+                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="meeting">📅</text>
+                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q3" data-action="teams">💬</text>
+                        </g>
+                    </g>
+
+                    <g id="quadrantGroup4">
+                        <text x="150" y="450" text-anchor="middle" class="quadrant-label" id="q4Label">Monitor</text>
+                        <g class="comm-actions" id="q4Actions" transform="translate(150, 470)">
+                            <rect x="-45" y="-10" width="90" height="25" rx="12" class="comm-action-bg"/>
+                            <text x="-25" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="email">✉️</text>
+                            <text x="0" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="meeting">📅</text>
+                            <text x="25" y="5" font-size="16" class="comm-action" data-quadrant="q4" data-action="teams">💬</text>
+                        </g>
+                    </g>
 
                     <!-- Stakeholder dots will be added here -->
                     <g id="stakeholders"></g>
@@ -639,6 +749,40 @@
         </div>
     </div>
 
+    <!-- Quadrant Names Modal -->
+    <div class="modal" id="quadrantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Quadrant Names</h2>
+            </div>
+            <form id="quadrantForm">
+                <div class="quadrant-input-group">
+                    <div class="form-group">
+                        <label for="q1Name">High Influence / High Interest</label>
+                        <input type="text" id="q1Name" placeholder="Manage Closely" maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="q2Name">High Influence / Low Interest</label>
+                        <input type="text" id="q2Name" placeholder="Keep Satisfied" maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="q3Name">Low Influence / High Interest</label>
+                        <input type="text" id="q3Name" placeholder="Keep Informed" maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="q4Name">Low Influence / Low Interest</label>
+                        <input type="text" id="q4Name" placeholder="Monitor" maxlength="30">
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="resetQuadrantNames()">Reset to Defaults</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeQuadrantModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -649,9 +793,21 @@
         // Application State
         let stakeholders = [];
         let editingId = null;
-        let projectInfo = {
+        let projects = {};
+        let currentProjectId = 'default';
+        
+        // Default project structure
+        const defaultProject = {
+            id: 'default',
             name: '',
-            manager: ''
+            manager: '',
+            quadrantNames: {
+                q1: 'Manage Closely',
+                q2: 'Keep Satisfied',
+                q3: 'Keep Informed',
+                q4: 'Monitor'
+            },
+            stakeholders: []
         };
 
         // Initialize the application
@@ -659,8 +815,10 @@
             loadFromLocalStorage();
             initializeAxisLabels();
             setupEventListeners();
+            setupProgressiveHover();
             updateDisplay();
             updateProjectDisplay();
+            updateQuadrantLabels();
         });
 
         // Initialize axis labels
@@ -689,6 +847,167 @@
             }
         }
 
+        // Setup Progressive Hover
+        function setupProgressiveHover() {
+            const quadrants = document.querySelectorAll('.quadrant');
+            const hoverTimers = {};
+
+            quadrants.forEach(quadrant => {
+                const quadrantId = quadrant.getAttribute('data-quadrant');
+                const actions = document.getElementById(`${quadrantId}Actions`);
+
+                quadrant.addEventListener('mouseenter', () => {
+                    // Start timer for progressive reveal
+                    hoverTimers[quadrantId] = setTimeout(() => {
+                        actions.classList.add('visible');
+                    }, 1000); // 1 second delay
+                });
+
+                quadrant.addEventListener('mouseleave', () => {
+                    // Clear timer and hide actions
+                    clearTimeout(hoverTimers[quadrantId]);
+                    actions.classList.remove('visible');
+                });
+            });
+
+            // Setup communication action clicks
+            document.querySelectorAll('.comm-action').forEach(action => {
+                action.addEventListener('click', handleCommunicationAction);
+            });
+        }
+
+        // Handle communication actions
+        function handleCommunicationAction(e) {
+            e.stopPropagation();
+            const quadrantId = e.target.getAttribute('data-quadrant');
+            const actionType = e.target.getAttribute('data-action');
+            const quadrantName = getCurrentProject().quadrantNames[quadrantId];
+            
+            // Get stakeholders in this quadrant
+            const quadrantStakeholders = stakeholders.filter(s => {
+                const q = getQuadrantId(s.influence, s.interest);
+                return q === quadrantId;
+            });
+
+            if (quadrantStakeholders.length === 0) {
+                showToast(`No stakeholders in ${quadrantName} quadrant`, 'error');
+                return;
+            }
+
+            switch(actionType) {
+                case 'email':
+                    sendEmail(quadrantStakeholders, quadrantName);
+                    break;
+                case 'meeting':
+                    createMeeting(quadrantStakeholders, quadrantName);
+                    break;
+                case 'teams':
+                    sendTeamsMessage(quadrantStakeholders, quadrantName);
+                    break;
+            }
+        }
+
+        // Send email to quadrant stakeholders
+        function sendEmail(stakeholders, quadrantName) {
+            const emails = stakeholders
+                .filter(s => s.email)
+                .map(s => s.email)
+                .join(',');
+
+            if (!emails) {
+                showToast('No email addresses found for stakeholders in this quadrant', 'error');
+                return;
+            }
+
+            const subject = encodeURIComponent(`${getCurrentProject().name || 'Project'} Update - ${quadrantName} Stakeholders`);
+            const body = encodeURIComponent(`Dear ${quadrantName} Stakeholders,\n\nI wanted to reach out regarding our ${getCurrentProject().name || 'project'}...\n\nBest regards,\n${getCurrentProject().manager || 'Project Manager'}`);
+            
+            window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
+            showToast(`Opening email client for ${stakeholders.length} stakeholders`);
+        }
+
+        // Create meeting invitation
+        function createMeeting(stakeholders, quadrantName) {
+            const emails = stakeholders
+                .filter(s => s.email)
+                .map(s => s.email);
+
+            if (emails.length === 0) {
+                showToast('No email addresses found for stakeholders in this quadrant', 'error');
+                return;
+            }
+
+            // Create ICS file content
+            const now = new Date();
+            const meetingDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week from now
+            
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Stakeholder Mapping Tool//EN',
+                'BEGIN:VEVENT',
+                `UID:${Date.now()}@stakeholdermapping.local`,
+                `DTSTAMP:${formatICSDate(now)}`,
+                `DTSTART:${formatICSDate(meetingDate)}`,
+                `DTEND:${formatICSDate(new Date(meetingDate.getTime() + 60 * 60 * 1000))}`, // 1 hour meeting
+                `SUMMARY:${getCurrentProject().name || 'Project'} - ${quadrantName} Stakeholder Meeting`,
+                `DESCRIPTION:Meeting for ${quadrantName} stakeholders in ${getCurrentProject().name || 'the project'}`,
+                `ORGANIZER:mailto:${getCurrentProject().manager ? getCurrentProject().manager.replace(/\s/g, '.').toLowerCase() + '@company.com' : 'organizer@company.com'}`,
+                ...emails.map(email => `ATTENDEE:mailto:${email}`),
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            // Download ICS file
+            const blob = new Blob([icsContent], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${quadrantName.replace(/\s/g, '_')}_meeting.ics`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast(`Meeting invitation created for ${stakeholders.length} stakeholders`);
+        }
+
+        // Format date for ICS file
+        function formatICSDate(date) {
+            return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+        }
+
+        // Send Teams message
+        function sendTeamsMessage(stakeholders, quadrantName) {
+            const emails = stakeholders
+                .filter(s => s.email)
+                .map(s => s.email)
+                .join(',');
+
+            if (!emails) {
+                showToast('No email addresses found for stakeholders in this quadrant', 'error');
+                return;
+            }
+
+            // Create Teams deep link
+            const message = encodeURIComponent(`Hello ${quadrantName} stakeholders! I wanted to connect regarding ${getCurrentProject().name || 'our project'}...`);
+            const teamsUrl = `https://teams.microsoft.com/l/chat/0/0?users=${emails}&message=${message}`;
+            
+            window.open(teamsUrl, '_blank');
+            showToast(`Opening Microsoft Teams for ${stakeholders.length} stakeholders`);
+        }
+
+        // Get current project
+        function getCurrentProject() {
+            return projects[currentProjectId] || defaultProject;
+        }
+
+        // Get quadrant ID based on scores
+        function getQuadrantId(influence, interest) {
+            if (influence > 5 && interest > 5) return 'q1';
+            if (influence > 5 && interest <= 5) return 'q2';
+            if (influence <= 5 && interest > 5) return 'q3';
+            return 'q4';
+        }
+
         // Setup event listeners
         function setupEventListeners() {
             // Form submission
@@ -697,8 +1016,14 @@
             // Project form submission
             document.getElementById('projectForm').addEventListener('submit', handleProjectFormSubmit);
             
+            // Quadrant form submission
+            document.getElementById('quadrantForm').addEventListener('submit', handleQuadrantFormSubmit);
+            
             // Cancel button
             document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
+            
+            // Delete button
+            document.getElementById('deleteBtn').addEventListener('click', deleteCurrentStakeholder);
             
             // Action buttons
             document.getElementById('csvImport').addEventListener('change', handleCsvImport);
@@ -709,7 +1034,17 @@
             document.getElementById('jsonImport').addEventListener('change', handleJsonImport);
             document.getElementById('exportExcel').addEventListener('click', exportToExcel);
             document.getElementById('exportPdf').addEventListener('click', exportToPdf);
+            document.getElementById('editQuadrants').addEventListener('click', openQuadrantModal);
             document.getElementById('clearAll').addEventListener('click', clearAllData);
+            
+            // Real-time validation for score inputs
+            document.getElementById('influence').addEventListener('input', function(e) {
+                validateScoreInput(e.target);
+            });
+            
+            document.getElementById('interest').addEventListener('input', function(e) {
+                validateScoreInput(e.target);
+            });
             
             // Close detail panel when clicking outside
             document.addEventListener('click', (e) => {
@@ -719,18 +1054,45 @@
                 }
             });
             
-            // Close modal when clicking outside
+            // Close modals when clicking outside
             document.getElementById('projectModal').addEventListener('click', (e) => {
                 if (e.target === document.getElementById('projectModal')) {
                     closeProjectModal();
                 }
             });
+            
+            document.getElementById('quadrantModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('quadrantModal')) {
+                    closeQuadrantModal();
+                }
+            });
+        }
+
+        // Validate score input
+        function validateScoreInput(input) {
+            const value = parseInt(input.value);
+            const helperText = input.nextElementSibling;
+            
+            if (value === 5) {
+                input.classList.add('warning');
+                if (helperText) {
+                    helperText.textContent = 'Please choose 4 or 6 instead';
+                    helperText.classList.add('warning');
+                }
+            } else {
+                input.classList.remove('warning');
+                if (helperText) {
+                    helperText.textContent = 'Cannot be 5';
+                    helperText.classList.remove('warning');
+                }
+            }
         }
 
         // Project Modal Functions
         function openProjectModal() {
-            document.getElementById('projectName').value = projectInfo.name;
-            document.getElementById('projectManager').value = projectInfo.manager;
+            const project = getCurrentProject();
+            document.getElementById('projectName').value = project.name;
+            document.getElementById('projectManager').value = project.manager;
             document.getElementById('projectModal').classList.add('active');
         }
 
@@ -740,8 +1102,14 @@
 
         function handleProjectFormSubmit(e) {
             e.preventDefault();
-            projectInfo.name = document.getElementById('projectName').value.trim();
-            projectInfo.manager = document.getElementById('projectManager').value.trim();
+            const project = getCurrentProject();
+            project.name = document.getElementById('projectName').value.trim();
+            project.manager = document.getElementById('projectManager').value.trim();
+            
+            if (!projects[currentProjectId]) {
+                projects[currentProjectId] = { ...defaultProject, ...project };
+            }
+            
             saveToLocalStorage();
             updateProjectDisplay();
             closeProjectModal();
@@ -749,8 +1117,60 @@
         }
 
         function updateProjectDisplay() {
-            document.getElementById('projectNameDisplay').textContent = projectInfo.name || 'Not Set';
-            document.getElementById('projectManagerDisplay').textContent = projectInfo.manager || 'Not Set';
+            const project = getCurrentProject();
+            document.getElementById('projectNameDisplay').textContent = project.name || 'Not Set';
+            document.getElementById('projectManagerDisplay').textContent = project.manager || 'Not Set';
+        }
+
+        // Quadrant Modal Functions
+        function openQuadrantModal() {
+            const quadrantNames = getCurrentProject().quadrantNames;
+            document.getElementById('q1Name').value = quadrantNames.q1;
+            document.getElementById('q2Name').value = quadrantNames.q2;
+            document.getElementById('q3Name').value = quadrantNames.q3;
+            document.getElementById('q4Name').value = quadrantNames.q4;
+            document.getElementById('quadrantModal').classList.add('active');
+        }
+
+        function closeQuadrantModal() {
+            document.getElementById('quadrantModal').classList.remove('active');
+        }
+
+        function handleQuadrantFormSubmit(e) {
+            e.preventDefault();
+            const project = getCurrentProject();
+            project.quadrantNames.q1 = document.getElementById('q1Name').value.trim() || 'Manage Closely';
+            project.quadrantNames.q2 = document.getElementById('q2Name').value.trim() || 'Keep Satisfied';
+            project.quadrantNames.q3 = document.getElementById('q3Name').value.trim() || 'Keep Informed';
+            project.quadrantNames.q4 = document.getElementById('q4Name').value.trim() || 'Monitor';
+            
+            saveToLocalStorage();
+            updateQuadrantLabels();
+            updateStakeholderQuadrants();
+            updateDisplay();
+            closeQuadrantModal();
+            showToast('Quadrant names updated');
+        }
+
+        function resetQuadrantNames() {
+            document.getElementById('q1Name').value = 'Manage Closely';
+            document.getElementById('q2Name').value = 'Keep Satisfied';
+            document.getElementById('q3Name').value = 'Keep Informed';
+            document.getElementById('q4Name').value = 'Monitor';
+        }
+
+        function updateQuadrantLabels() {
+            const quadrantNames = getCurrentProject().quadrantNames;
+            document.getElementById('q1Label').textContent = quadrantNames.q1;
+            document.getElementById('q2Label').textContent = quadrantNames.q2;
+            document.getElementById('q3Label').textContent = quadrantNames.q3;
+            document.getElementById('q4Label').textContent = quadrantNames.q4;
+        }
+
+        function updateStakeholderQuadrants() {
+            stakeholders.forEach(stakeholder => {
+                stakeholder.quadrant = getQuadrant(stakeholder.influence, stakeholder.interest);
+            });
         }
 
         // Form submission handler
@@ -758,6 +1178,7 @@
             e.preventDefault();
             
             const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
             const roles = document.getElementById('roles').value.trim();
             const influence = parseInt(document.getElementById('influence').value);
             const interest = parseInt(document.getElementById('interest').value);
@@ -772,9 +1193,29 @@
                 return;
             }
             
+            // Prevent scores of 5
+            if (influence === 5 || interest === 5) {
+                showToast('Stakeholders cannot be placed on quadrant boundaries. Please choose 4 or 6 instead of 5.', 'error');
+                
+                // Highlight the problematic fields
+                if (influence === 5) {
+                    document.getElementById('influence').classList.add('warning');
+                }
+                if (interest === 5) {
+                    document.getElementById('interest').classList.add('warning');
+                }
+                
+                return;
+            }
+            
+            // Reset warning styles if validation passes
+            document.getElementById('influence').classList.remove('warning');
+            document.getElementById('interest').classList.remove('warning');
+            
             const stakeholder = {
                 id: editingId || Date.now().toString(),
                 name,
+                email,
                 roles,
                 influence,
                 interest,
@@ -797,10 +1238,11 @@
 
         // Get quadrant based on scores
         function getQuadrant(influence, interest) {
-            if (influence > 5 && interest > 5) return 'Manage Closely';
-            if (influence > 5 && interest <= 5) return 'Keep Satisfied';
-            if (influence <= 5 && interest > 5) return 'Keep Informed';
-            return 'Monitor';
+            const quadrantNames = getCurrentProject().quadrantNames;
+            if (influence > 5 && interest > 5) return quadrantNames.q1;
+            if (influence > 5 && interest <= 5) return quadrantNames.q2;
+            if (influence <= 5 && interest > 5) return quadrantNames.q3;
+            return quadrantNames.q4;
         }
 
         // Update display
@@ -846,11 +1288,26 @@
                 circle.setAttribute('stroke', '#fff');
                 circle.setAttribute('stroke-width', '2');
                 
+                // Calculate label position based on edge proximity
+                let labelY = y - 12; // Default: above the dot
+                let labelAnchor = 'middle';
+                
+                // Adjust for top edge (interest = 10)
+                if (interest === 10) {
+                    labelY = y + 20; // Below the dot
+                }
+                
+                // Adjust for bottom edge (interest = 1)
+                if (interest === 1) {
+                    labelY = y - 12; // Keep above
+                }
+                
                 // Create label (show first stakeholder's name)
                 const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 label.setAttribute('x', x);
-                label.setAttribute('y', y - 12);
+                label.setAttribute('y', labelY);
                 label.setAttribute('class', 'stakeholder-label');
+                label.setAttribute('text-anchor', labelAnchor);
                 label.textContent = stakeholdersAtPosition[0].name;
                 
                 // If multiple stakeholders, add count
@@ -908,6 +1365,7 @@
                 detail.innerHTML = `
                     <div class="detail-name">${stakeholder.name}</div>
                     <div class="detail-info">
+                        ${stakeholder.email ? `<strong>Email:</strong> ${stakeholder.email}<br>` : ''}
                         <strong>Roles:</strong> ${stakeholder.roles || 'N/A'}<br>
                         <strong>Business Influence:</strong> ${stakeholder.influence}<br>
                         <strong>Technical Interest:</strong> ${stakeholder.interest}<br>
@@ -934,6 +1392,7 @@
                 item.innerHTML = `
                     <strong>${stakeholder.name}</strong><br>
                     <small>${stakeholder.quadrant} (${stakeholder.influence}, ${stakeholder.interest})</small>
+                    ${stakeholder.email ? `<br><small>${stakeholder.email}</small>` : ''}
                 `;
                 item.addEventListener('click', () => editStakeholder(stakeholder.id));
                 stakeholderItems.appendChild(item);
@@ -953,12 +1412,14 @@
             
             editingId = id;
             document.getElementById('name').value = stakeholder.name;
+            document.getElementById('email').value = stakeholder.email || '';
             document.getElementById('roles').value = stakeholder.roles;
             document.getElementById('influence').value = stakeholder.influence;
             document.getElementById('interest').value = stakeholder.interest;
             
             document.getElementById('submitBtn').textContent = 'Update Stakeholder';
             document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('deleteBtn').style.display = 'inline-block';
             
             // Scroll to form
             document.querySelector('.left-panel').scrollTop = 0;
@@ -980,6 +1441,17 @@
             }
         }
 
+        // Delete current stakeholder being edited
+        function deleteCurrentStakeholder() {
+            if (editingId && confirm('Are you sure you want to delete this stakeholder?')) {
+                stakeholders = stakeholders.filter(s => s.id !== editingId);
+                saveToLocalStorage();
+                updateDisplay();
+                resetForm();
+                showToast('Stakeholder deleted successfully');
+            }
+        }
+
         // Cancel edit
         function cancelEdit() {
             resetForm();
@@ -991,6 +1463,15 @@
             editingId = null;
             document.getElementById('submitBtn').textContent = 'Add Stakeholder';
             document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('deleteBtn').style.display = 'none';
+            
+            // Reset warning styles
+            document.getElementById('influence').classList.remove('warning');
+            document.getElementById('interest').classList.remove('warning');
+            document.querySelectorAll('.helper-text').forEach(el => {
+                el.textContent = 'Cannot be 5';
+                el.classList.remove('warning');
+            });
         }
 
         // CSV Import
@@ -1004,18 +1485,29 @@
                 const lines = csv.split('\n');
                 const headers = lines[0].split(',').map(h => h.trim());
                 
-                // Expected headers: Name, Roles, Business Influence, Technical Interest
+                // Expected headers: Name, Email, Roles, Business Influence, Technical Interest
                 const imported = [];
+                let skippedCount = 0;
                 
                 for (let i = 1; i < lines.length; i++) {
                     const values = lines[i].split(',').map(v => v.trim());
-                    if (values.length >= 4 && values[0]) {
+                    if (values.length >= 5 && values[0]) {
+                        const influence = parseInt(values[3]) || 0;
+                        const interest = parseInt(values[4]) || 0;
+                        
+                        // Skip if scores are 5
+                        if (influence === 5 || interest === 5) {
+                            skippedCount++;
+                            continue;
+                        }
+                        
                         const stakeholder = {
                             id: Date.now().toString() + i,
                             name: values[0],
-                            roles: values[1],
-                            influence: parseInt(values[2]) || 5,
-                            interest: parseInt(values[3]) || 5
+                            email: values[1],
+                            roles: values[2],
+                            influence: influence,
+                            interest: interest
                         };
                         
                         // Validate scores
@@ -1031,7 +1523,11 @@
                     stakeholders = [...stakeholders, ...imported];
                     saveToLocalStorage();
                     updateDisplay();
-                    showToast(`Imported ${imported.length} stakeholders successfully`);
+                    let message = `Imported ${imported.length} stakeholders successfully`;
+                    if (skippedCount > 0) {
+                        message += `. Skipped ${skippedCount} stakeholders with scores of 5.`;
+                    }
+                    showToast(message);
                 } else {
                     showToast('No valid stakeholders found in CSV', 'error');
                 }
@@ -1043,9 +1539,11 @@
 
         // JSON Export
         function exportToJson() {
+            const project = getCurrentProject();
             const data = {
-                projectName: projectInfo.name || 'Stakeholder Mapping',
-                projectManager: projectInfo.manager || '',
+                projectName: project.name || 'Stakeholder Mapping',
+                projectManager: project.manager || '',
+                quadrantNames: project.quadrantNames,
                 exportDate: new Date().toISOString(),
                 stakeholders: stakeholders
             };
@@ -1073,20 +1571,36 @@
                 try {
                     const data = JSON.parse(event.target.result);
                     if (data.stakeholders && Array.isArray(data.stakeholders)) {
-                        stakeholders = data.stakeholders;
+                        // Filter out stakeholders with scores of 5
+                        const validStakeholders = data.stakeholders.filter(s => 
+                            s.influence !== 5 && s.interest !== 5
+                        );
                         
-                        // Import project info if available
-                        if (data.projectName !== undefined) {
-                            projectInfo.name = data.projectName;
-                        }
-                        if (data.projectManager !== undefined) {
-                            projectInfo.manager = data.projectManager;
-                        }
+                        const skippedCount = data.stakeholders.length - validStakeholders.length;
+                        stakeholders = validStakeholders;
+                        
+                        // Create new project from imported data
+                        const newProject = {
+                            id: Date.now().toString(),
+                            name: data.projectName || '',
+                            manager: data.projectManager || '',
+                            quadrantNames: data.quadrantNames || { ...defaultProject.quadrantNames },
+                            stakeholders: stakeholders
+                        };
+                        
+                        currentProjectId = newProject.id;
+                        projects[currentProjectId] = newProject;
                         
                         saveToLocalStorage();
                         updateDisplay();
                         updateProjectDisplay();
-                        showToast('Imported from JSON successfully');
+                        updateQuadrantLabels();
+                        
+                        let message = 'Imported from JSON successfully';
+                        if (skippedCount > 0) {
+                            message += `. Skipped ${skippedCount} stakeholders with scores of 5.`;
+                        }
+                        showToast(message);
                     } else {
                         showToast('Invalid JSON format', 'error');
                     }
@@ -1101,15 +1615,22 @@
 
         // Excel Export
         function exportToExcel() {
+            const project = getCurrentProject();
             const ws_data = [
-                ['Project Name', projectInfo.name || ''],
-                ['Project Manager', projectInfo.manager || ''],
+                ['Project Name', project.name || ''],
+                ['Project Manager', project.manager || ''],
                 [], // Empty row
-                ['Name', 'Roles', 'Business Influence', 'Technical Interest', 'Quadrant']
+                ['Quadrant Names'],
+                ['High Influence / High Interest', project.quadrantNames.q1],
+                ['High Influence / Low Interest', project.quadrantNames.q2],
+                ['Low Influence / High Interest', project.quadrantNames.q3],
+                ['Low Influence / Low Interest', project.quadrantNames.q4],
+                [], // Empty row
+                ['Name', 'Email', 'Roles', 'Business Influence', 'Technical Interest', 'Quadrant']
             ];
             
             stakeholders.forEach(s => {
-                ws_data.push([s.name, s.roles, s.influence, s.interest, s.quadrant]);
+                ws_data.push([s.name, s.email || '', s.roles, s.influence, s.interest, s.quadrant]);
             });
             
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -1126,6 +1647,7 @@
             document.querySelector('.left-panel').style.display = 'none';
             document.querySelector('.detail-panel').classList.remove('active');
             document.querySelector('.empty-state').style.display = 'none';
+            document.querySelectorAll('.comm-actions').forEach(el => el.style.display = 'none');
             
             // Add project info to the matrix for PDF
             const projectInfoElement = document.createElement('div');
@@ -1134,9 +1656,10 @@
             projectInfoElement.style.left = '10px';
             projectInfoElement.style.fontSize = '14px';
             projectInfoElement.style.color = 'var(--text-dark)';
+            const project = getCurrentProject();
             projectInfoElement.innerHTML = `
-                <strong>Project:</strong> ${projectInfo.name || 'Not Set'}<br>
-                <strong>Manager:</strong> ${projectInfo.manager || 'Not Set'}
+                <strong>Project:</strong> ${project.name || 'Not Set'}<br>
+                <strong>Manager:</strong> ${project.manager || 'Not Set'}
             `;
             document.querySelector('.matrix-wrapper').appendChild(projectInfoElement);
             
@@ -1152,6 +1675,7 @@
                 
                 // Restore UI elements
                 document.querySelector('.left-panel').style.display = 'block';
+                document.querySelectorAll('.comm-actions').forEach(el => el.style.display = '');
                 updateEmptyState();
                 projectInfoElement.remove();
                 
@@ -1161,20 +1685,33 @@
 
         // Clear all data
         function clearAllData() {
-            if (confirm('Are you sure you want to clear all stakeholders? This cannot be undone.')) {
+            if (confirm('Are you sure you want to clear all stakeholders and start a new project? This cannot be undone.')) {
+                // Create new project
+                const newProjectId = Date.now().toString();
+                projects[newProjectId] = { ...defaultProject, id: newProjectId };
+                currentProjectId = newProjectId;
                 stakeholders = [];
+                
                 saveToLocalStorage();
                 updateDisplay();
+                updateProjectDisplay();
+                updateQuadrantLabels();
                 resetForm();
-                showToast('All data cleared');
+                showToast('All data cleared - new project started');
             }
         }
 
         // LocalStorage functions
         function saveToLocalStorage() {
+            // Update current project's stakeholders
+            if (!projects[currentProjectId]) {
+                projects[currentProjectId] = { ...defaultProject, id: currentProjectId };
+            }
+            projects[currentProjectId].stakeholders = stakeholders;
+            
             const data = {
-                stakeholders: stakeholders,
-                projectInfo: projectInfo
+                projects: projects,
+                currentProjectId: currentProjectId
             };
             localStorage.setItem('stakeholderMapping', JSON.stringify(data));
         }
@@ -1184,13 +1721,42 @@
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    stakeholders = data.stakeholders || [];
-                    projectInfo = data.projectInfo || { name: '', manager: '' };
+                    
+                    // Handle old format (backward compatibility)
+                    if (data.stakeholders && !data.projects) {
+                        // Convert old format to new project-based format
+                        const oldProject = {
+                            id: 'default',
+                            name: data.projectInfo?.name || '',
+                            manager: data.projectInfo?.manager || '',
+                            quadrantNames: data.quadrantNames || { ...defaultProject.quadrantNames },
+                            stakeholders: data.stakeholders || []
+                        };
+                        projects = { default: oldProject };
+                        currentProjectId = 'default';
+                        stakeholders = oldProject.stakeholders;
+                    } else {
+                        // Load new format
+                        projects = data.projects || {};
+                        currentProjectId = data.currentProjectId || 'default';
+                        
+                        if (!projects[currentProjectId]) {
+                            projects[currentProjectId] = { ...defaultProject, id: currentProjectId };
+                        }
+                        
+                        stakeholders = projects[currentProjectId].stakeholders || [];
+                    }
                 } catch (error) {
                     console.error('Error loading saved data:', error);
+                    projects = { default: { ...defaultProject } };
+                    currentProjectId = 'default';
                     stakeholders = [];
-                    projectInfo = { name: '', manager: '' };
                 }
+            } else {
+                // Initialize with default project
+                projects = { default: { ...defaultProject } };
+                currentProjectId = 'default';
+                stakeholders = [];
             }
         }
 
@@ -1211,6 +1777,9 @@
         window.deleteStakeholder = deleteStakeholder;
         window.openProjectModal = openProjectModal;
         window.closeProjectModal = closeProjectModal;
+        window.openQuadrantModal = openQuadrantModal;
+        window.closeQuadrantModal = closeQuadrantModal;
+        window.resetQuadrantNames = resetQuadrantNames;
     </script>
 </body>
 </html>
